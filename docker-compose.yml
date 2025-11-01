@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    # no volumes by default - image contains example.csv
+    # To override the data at runtime, mount a CSV to /data/example.csv
+# Example to mount at runtime (PowerShell):
+# docker run --rm -p 8000:8000 -v "C:\path\to\example.csv:/data/example.csv" volcano-plot

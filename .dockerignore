@@ -1,0 +1,11 @@
+*.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.DS_Store
+.git
+.gitignore
+node_modules
+venv
+__pycache__
+*.tar.gz

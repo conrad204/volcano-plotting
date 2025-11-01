@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+  <body>
+    <input id="gene" placeholder="Enter gene (e.g., Notch3)" autocomplete="off" spellcheck="false" autocorrect="off" autocapitalize="off" />
+    <button onclick="addGene()">Add</button>
+    <button onclick="resetGenes()">Reset</button>
+    <p>Red and blue points are automatically colored if significant & >2 log2 fold change</p>
+    <p>also it takes ages to load so give it a sec :p</p>
+    <div style="margin-top:8px;">
+      <label for="lfc">log2 fold-change threshold: <strong><span id="lfc_val">2</span></strong></label>
+      <input id="lfc" type="range" min="0" max="8" step="0.1" value="2" style="width:300px; vertical-align:middle;" />
+    </div>
+    <div style="margin-top:8px;">
+      <button id="toggleLabelsBtn" style="margin-bottom:6px;">Threshold labels: Off</button>
+      <label for="minlogp">-log10(padj) threshold: <strong><span id="minlogp_val">60</span></strong></label>
+      <input id="minlogp" type="range" min="0" max="75" step="0.1" value="60" style="width:300px; vertical-align:middle;" />
+      <p style="color: red;">WARNING! setting -log10(padj) below 40 will greatly increase loading time</p>
+    <pre id="out"></pre>
+    <div><img id="plot" style="width:100%; max-width:750px"/></div>
+        <script src = "script.js"></script>
+  </body>
+</html>
