@@ -3,7 +3,7 @@ FROM rocker/r2u:jammy
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev libxml2-dev libssl-dev \
-    libfontconfig1-dev libfreetype6-dev libpng-dev libtiff5-dev libjpeg-dev \
+    libfontconfig1-dev libfreetype6-dev libpng-dev libtiff-dev libjpeg-dev \
     ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
@@ -15,12 +15,13 @@ RUN R -q -e "install.packages(c('plumber','ggplot2','ggrepel','dplyr','readr','A
 WORKDIR /app
 COPY . /app/
 
-# ensure example.csv is available at /data/example.csv (plumber.R checks /data/example.csv by default)
+# Ship a default dataset inside the image
 RUN mkdir -p /data
 COPY example.csv /data/example.csv
 
 # Prefer the baked-in CSV by default
 ENV RES_FILE=/data/example.csv
-
+ENV PORT=8000
 EXPOSE 8000
+
 CMD ["Rscript", "run_api.R"]

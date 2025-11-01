@@ -14,11 +14,8 @@ you'll need docker installed
 PowerShell (from project root):
 
 ```powershell
-# build the image
-docker build -t volcano-plot .
-
-# run
-docker run --rm -p 8000:8000 volcano-plot
+docker pull cfeng204/volcano-api:latest
+docker run -p 8000:8000 cfeng204/volcano-api:latest
 ```
 
-Open the UI at http://localhost:5500/index.html if you serve the static files, or open `index.html` (i recommend this) served from the project directory using a static server. The API will be at http://localhost:8000.
+then open the index.html file

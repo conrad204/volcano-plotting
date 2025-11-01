@@ -1,4 +1,7 @@
-#!/usr/bin/env Rscript
+# run_api.R
 library(plumber)
-# Host 0.0.0.0 so it’s reachable from outside the container
-pr("plumber.R")$run(host = "0.0.0.0", port = 8000)
+pr <- plumb("plumber.R")
+
+port <- as.integer(Sys.getenv("PORT", "8000"))
+host <- Sys.getenv("HOST", "0.0.0.0")  # CRITICAL for Docker
+pr$run(host = host, port = port)
