@@ -1,7 +1,6 @@
 # Volcano plotting (plumber)
 
 this repo uses R plumber API to generate a volcano plot based off `example.csv`
-currently, there is no implementation to upload custom dataset (todo)
 
 **NOTE: while *padj* and *log₂ fold change* values reflect real experimental results, ensemblIDs have been randomly reassigned to unrelated entries to preserve integrity of unpublished data.**
 
@@ -27,6 +26,7 @@ if you want to try out your own dataset, upload any .csv with the following colu
 1. EnsemblID (ENSMUSG only) OR GeneName
 2. log2FoldChange
 3. padj
+
 NOTE: extra columns are fine and will be ignored
 
 ## example data: 
