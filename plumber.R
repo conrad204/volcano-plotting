@@ -43,18 +43,26 @@ res <- read.csv(res_file, stringsAsFactors = FALSE)
 # Remove version suffix from Ensembl IDs (e.g., ENSMUSG...1.3 -> ENSMUSG...1)
 res$EnsemblID_NoVersion <- gsub("\\..*", "", res$EnsemblID)
 
-# Map Ensembl -> SYMBOL (mouse)
-ensembl_ids <- unique(res$EnsemblID_NoVersion)
-gene_symbols_df <- AnnotationDbi::select(
-  org.Mm.eg.db,
-  keys = ensembl_ids,
-  columns = "SYMBOL",
-  keytype = "ENSEMBL"
-)
-
-# Left join to add SYMBOL
-res <- merge(res, gene_symbols_df,
-             by.x = "EnsemblID_NoVersion", by.y = "ENSEMBL", all.x = TRUE)
+# Check if GeneName column exists, otherwise map Ensembl -> SYMBOL
+if ("GeneName" %in% names(res)) {
+  # Use existing GeneName column as SYMBOL
+  res$SYMBOL <- res$GeneName
+  message("Using existing GeneName column for gene symbols")
+} else {
+  # Map Ensembl -> SYMBOL (mouse)
+  ensembl_ids <- unique(res$EnsemblID_NoVersion)
+  gene_symbols_df <- AnnotationDbi::select(
+    org.Mm.eg.db,
+    keys = ensembl_ids,
+    columns = "SYMBOL",
+    keytype = "ENSEMBL"
+  )
+  
+  # Left join to add SYMBOL
+  res <- merge(res, gene_symbols_df,
+               by.x = "EnsemblID_NoVersion", by.y = "ENSEMBL", all.x = TRUE)
+  message("Mapped Ensembl IDs to gene symbols")
+}
 
 # Precompute -log10(padj)
 res$minusLog10Padj <- -log10(res$padj)
@@ -204,18 +212,26 @@ function(req){
     # process the uploaded data (same as initialization)
     uploaded_data$EnsemblID_NoVersion <- gsub("\\..*", "", uploaded_data$EnsemblID)
     
-    # Map Ensembl -> SYMBOL
-    ensembl_ids_upload <- unique(uploaded_data$EnsemblID_NoVersion)
-    gene_symbols_upload <- AnnotationDbi::select(
-      org.Mm.eg.db,
-      keys = ensembl_ids_upload,
-      columns = "SYMBOL",
-      keytype = "ENSEMBL"
-    )
-    
-    # merge symbols
-    uploaded_data <- merge(uploaded_data, gene_symbols_upload,
-                          by.x = "EnsemblID_NoVersion", by.y = "ENSEMBL", all.x = TRUE)
+    # Check if GeneName column exists, otherwise map Ensembl -> SYMBOL
+    if ("GeneName" %in% names(uploaded_data)) {
+      # Use existing GeneName column as SYMBOL
+      uploaded_data$SYMBOL <- uploaded_data$GeneName
+      message("Using existing GeneName column for gene symbols")
+    } else {
+      # Map Ensembl -> SYMBOL
+      ensembl_ids_upload <- unique(uploaded_data$EnsemblID_NoVersion)
+      gene_symbols_upload <- AnnotationDbi::select(
+        org.Mm.eg.db,
+        keys = ensembl_ids_upload,
+        columns = "SYMBOL",
+        keytype = "ENSEMBL"
+      )
+      
+      # merge symbols
+      uploaded_data <- merge(uploaded_data, gene_symbols_upload,
+                            by.x = "EnsemblID_NoVersion", by.y = "ENSEMBL", all.x = TRUE)
+      message("Mapped Ensembl IDs to gene symbols")
+    }
     
     # compute -log10(padj)
     uploaded_data$minusLog10Padj <- -log10(uploaded_data$padj)
@@ -287,9 +303,13 @@ function(lfc = 1.5, minlogp = -log10(0.05), p_cut = 0.05, show_threshold_labels 
   if (is.null(df$minusLog10Padj)) df$minusLog10Padj <- -log10(df$padj)
 
   # dot colors based on thresholds
+  # Red: log2FC > lfc AND -log10(padj) > minlogp
+  # Blue: log2FC < -lfc AND -log10(padj) > minlogp
   df$dot_color <- "gray"
-  df$dot_color[!is.na(df$log2FoldChange) & df$log2FoldChange > lfc & !is.na(df$padj) & df$padj < p_cut] <- "red"
-  df$dot_color[!is.na(df$log2FoldChange) & df$log2FoldChange < -lfc & !is.na(df$padj) & df$padj < p_cut] <- "blue"
+  df$dot_color[!is.na(df$log2FoldChange) & df$log2FoldChange > lfc & 
+               !is.na(df$minusLog10Padj) & df$minusLog10Padj > minlogp] <- "red"
+  df$dot_color[!is.na(df$log2FoldChange) & df$log2FoldChange < -lfc & 
+               !is.na(df$minusLog10Padj) & df$minusLog10Padj > minlogp] <- "blue"
   df$dot_color[df$SYMBOL %in% state$interesting_genes] <- "green"
 
   # threshold-based labels (boolean vector)
@@ -303,6 +323,15 @@ function(lfc = 1.5, minlogp = -log10(0.05), p_cut = 0.05, show_threshold_labels 
     NA
   )
 
+  # Calculate dynamic axis limits
+  # For x-axis: find max absolute value, then add 0.5 and make symmetric
+  max_abs_lfc <- max(abs(df$log2FoldChange), na.rm = TRUE)
+  x_limit <- max_abs_lfc + 0.5
+  
+  # For y-axis: find max value and add 3
+  max_y <- max(df$minusLog10Padj, na.rm = TRUE)
+  y_limit <- max_y + 3
+  
   p <- ggplot(df, aes(x = log2FoldChange, y = minusLog10Padj)) +
     geom_point(data = subset(df, dot_color == "gray"),
                aes(color = dot_color), alpha = 0.7) +
@@ -326,8 +355,8 @@ function(lfc = 1.5, minlogp = -log10(0.05), p_cut = 0.05, show_threshold_labels 
     ) +
     geom_vline(xintercept = c(-lfc, lfc), linetype = "dotted", color = "gray50", linewidth = 0.8) +
     geom_hline(yintercept = minlogp, linetype = "dotted", color = "gray50", linewidth = 0.8) +
-    scale_x_continuous(limits = c(-6.5, 10.5)) +
-    scale_y_continuous(limits = c(0, 75)) +
+    scale_x_continuous(limits = c(-x_limit, x_limit)) +
+    scale_y_continuous(limits = c(0, y_limit)) +
     theme_bw() +
     labs(title = "Volcano Plot",
          x = "log2(Fold Change)",

@@ -109,6 +109,22 @@ function refreshPlot(){
   document.getElementById('plot').src = `${API}/plot?lfc=${lfc}&minlogp=${minlogp}&show_threshold_labels=${show}&ts=${Date.now()}`;
 }
 
+// Update the display of converted threshold values
+function updateThresholdDisplay(){
+  const log2fc = parseFloat(document.getElementById('lfc').value);
+  const minlogp = parseFloat(document.getElementById('minlogp').value);
+  
+  // Convert log2 fold change to fold change: 2^log2fc
+  const foldChange = Math.pow(2, log2fc);
+  
+  // Convert -log10(padj) to padj: 10^(-minlogp)
+  const padj = Math.pow(10, -minlogp);
+  
+  // Update display with appropriate formatting
+  document.getElementById('fc_display').textContent = foldChange.toFixed(2);
+  document.getElementById('padj_display').textContent = padj.toExponential(2);
+}
+
 // Wire sliders: update displayed numeric value and refresh the plot on change
 function initSliders(){
   const lfcSlider = document.getElementById('lfc');
@@ -122,11 +138,13 @@ function initSliders(){
     // slider -> number
     lfcSlider.addEventListener('input', function(){
       lfcNumber.value = this.value;
+      updateThresholdDisplay();
       refreshPlot();
     });
     // number -> slider
     lfcNumber.addEventListener('input', function(){
       lfcSlider.value = this.value;
+      updateThresholdDisplay();
       refreshPlot();
     });
   }
@@ -137,6 +155,7 @@ function initSliders(){
     // slider -> number
     minlogpSlider.addEventListener('input', function(){
       minlogpNumber.value = this.value;
+      updateThresholdDisplay();
       refreshPlot();
     });
     // number -> slider (with bounds clamping)
@@ -144,9 +163,13 @@ function initSliders(){
       const v = Math.min(Math.max(parseFloat(this.value || 0), parseFloat(minlogpSlider.min)), parseFloat(minlogpSlider.max));
       this.value = v;
       minlogpSlider.value = v;
+      updateThresholdDisplay();
       refreshPlot();
     });
   }
+  
+  // Initialize the threshold display
+  updateThresholdDisplay();
 }
 
 // initial
