@@ -56,6 +56,50 @@ async function resetGenes(){
   console.debug('resetGenes response:', data);
 }
 
+async function uploadCSV(){
+  const fileInput = document.getElementById('csvFile');
+  const file = fileInput.files[0];
+  
+  if (!file) {
+    document.getElementById('out').textContent = 'Please select a CSV file first.';
+    return;
+  }
+  
+  // show loading message
+  document.getElementById('out').textContent = 'Uploading and processing CSV...';
+  
+  try {
+    // Read the file as text
+    const fileContent = await file.text();
+    
+    const res = await fetch(`${API}/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/csv'
+      },
+      body: fileContent
+    });
+    
+    const data = await res.json();
+    const ok = unwrap(data.ok);
+    
+    if (ok === true) {
+      const rows = unwrap(data.rows);
+      document.getElementById('out').textContent = `CSV uploaded! Loaded ${rows} rows.`;
+      refreshPlot();
+    } else {
+      const message = unwrap(data.message) || 'Upload failed';
+      document.getElementById('out').textContent = `Error: ${message}`;
+    }
+    
+    console.debug('uploadCSV response:', data);
+    
+  } catch (error) {
+    document.getElementById('out').textContent = `Upload error: ${error.message}`;
+    console.error('Upload error:', error);
+  }
+}
+
 // Refresh plot using slider values (lfc and minlogp) as query params
 function refreshPlot(){
   const lfc = encodeURIComponent(document.getElementById('lfc').value);
@@ -67,23 +111,39 @@ function refreshPlot(){
 
 // Wire sliders: update displayed numeric value and refresh the plot on change
 function initSliders(){
-  const lfcEl = document.getElementById('lfc');
-  const lfcVal = document.getElementById('lfc_val');
-  const minlogpEl = document.getElementById('minlogp');
-  const minlogpVal = document.getElementById('minlogp_val');
+  const lfcSlider = document.getElementById('lfc');
+  const lfcNumber = document.getElementById('lfc_val');
+  const minlogpSlider = document.getElementById('minlogp');
+  const minlogpNumber = document.getElementById('minlogp_val');
 
-  if (lfcEl && lfcVal) {
-    lfcVal.textContent = lfcEl.value;
-    lfcEl.addEventListener('input', function(){
-      lfcVal.textContent = this.value;
+  if (lfcSlider && lfcNumber) {
+    // initialize
+    lfcNumber.value = lfcSlider.value;
+    // slider -> number
+    lfcSlider.addEventListener('input', function(){
+      lfcNumber.value = this.value;
+      refreshPlot();
+    });
+    // number -> slider
+    lfcNumber.addEventListener('input', function(){
+      lfcSlider.value = this.value;
       refreshPlot();
     });
   }
 
-  if (minlogpEl && minlogpVal) {
-    minlogpVal.textContent = minlogpEl.value;
-    minlogpEl.addEventListener('input', function(){
-      minlogpVal.textContent = this.value;
+  if (minlogpSlider && minlogpNumber) {
+    // initialize
+    minlogpNumber.value = minlogpSlider.value;
+    // slider -> number
+    minlogpSlider.addEventListener('input', function(){
+      minlogpNumber.value = this.value;
+      refreshPlot();
+    });
+    // number -> slider (with bounds clamping)
+    minlogpNumber.addEventListener('input', function(){
+      const v = Math.min(Math.max(parseFloat(this.value || 0), parseFloat(minlogpSlider.min)), parseFloat(minlogpSlider.max));
+      this.value = v;
+      minlogpSlider.value = v;
       refreshPlot();
     });
   }
@@ -119,3 +179,40 @@ document.getElementById('gene').addEventListener('keydown', function(e){
     addGene();
   }
 });
+
+(function wireThresholdInputs(){
+  const lfcSlider = document.getElementById('lfc');
+  const lfcNumber = document.getElementById('lfc_val');
+  const minlogpSlider = document.getElementById('minlogp');
+  const minlogpNumber = document.getElementById('minlogp_val');
+
+  if (lfcSlider && lfcNumber) {
+    // initialize
+    lfcNumber.value = lfcSlider.value;
+    // slider -> number
+    lfcSlider.addEventListener('input', () => {
+      lfcNumber.value = lfcSlider.value;
+      refreshPlot();
+    });
+    // number -> slider
+    lfcNumber.addEventListener('input', () => {
+      lfcSlider.value = lfcNumber.value;
+      refreshPlot();
+    });
+  }
+
+  if (minlogpSlider && minlogpNumber) {
+    minlogpNumber.value = minlogpSlider.value;
+    minlogpSlider.addEventListener('input', () => {
+      minlogpNumber.value = minlogpSlider.value;
+      refreshPlot();
+    });
+    minlogpNumber.addEventListener('input', () => {
+      // clamp to slider bounds
+      const v = Math.min(Math.max(parseFloat(minlogpNumber.value || 0), parseFloat(minlogpSlider.min)), parseFloat(minlogpSlider.max));
+      minlogpNumber.value = v;
+      minlogpSlider.value = v;
+      refreshPlot();
+    });
+  }
+})();

@@ -179,6 +179,66 @@ function(){
   list(ok = TRUE, cleared = TRUE, interesting_genes = state$interesting_genes)
 }
 
+# ---- API: upload custom CSV ----
+#* Upload a custom CSV file to replace the current dataset
+#* @post /upload
+#* @parser csv
+function(req){
+  tryCatch({
+    # The CSV parser automatically reads the uploaded CSV into a data frame
+    uploaded_data <- req$body
+    
+    # validate we got data
+    if (is.null(uploaded_data) || nrow(uploaded_data) == 0) {
+      return(list(ok = FALSE, message = "No data in uploaded CSV"))
+    }
+    
+    # basic validation - check for required columns
+    required_cols <- c("EnsemblID", "log2FoldChange", "padj")
+    missing <- setdiff(required_cols, names(uploaded_data))
+    if (length(missing) > 0) {
+      return(list(ok = FALSE, 
+                  message = sprintf("Missing required columns: %s", paste(missing, collapse = ", "))))
+    }
+    
+    # process the uploaded data (same as initialization)
+    uploaded_data$EnsemblID_NoVersion <- gsub("\\..*", "", uploaded_data$EnsemblID)
+    
+    # Map Ensembl -> SYMBOL
+    ensembl_ids_upload <- unique(uploaded_data$EnsemblID_NoVersion)
+    gene_symbols_upload <- AnnotationDbi::select(
+      org.Mm.eg.db,
+      keys = ensembl_ids_upload,
+      columns = "SYMBOL",
+      keytype = "ENSEMBL"
+    )
+    
+    # merge symbols
+    uploaded_data <- merge(uploaded_data, gene_symbols_upload,
+                          by.x = "EnsemblID_NoVersion", by.y = "ENSEMBL", all.x = TRUE)
+    
+    # compute -log10(padj)
+    uploaded_data$minusLog10Padj <- -log10(uploaded_data$padj)
+    
+    # replace global res with uploaded data
+    res <<- uploaded_data
+    
+    # clear interesting genes list (new dataset)
+    state$interesting_genes <- character(0)
+    
+    # recompute annotations with new data
+    recompute_annotations()
+    
+    list(ok = TRUE, 
+         message = "CSV uploaded and processed successfully",
+         rows = nrow(res),
+         columns = ncol(res))
+         
+  }, error = function(e) {
+    list(ok = FALSE, message = sprintf("Error processing CSV: %s", e$message))
+  })
+}
+
 # ---- API: check membership only ----
 #* Check if a gene exists in res$SYMBOL and/or is interesting
 #* @get /check

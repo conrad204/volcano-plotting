@@ -13,20 +13,33 @@
       <button onclick="addGene()">Add</button>
       <button onclick="resetGenes()">Reset</button>
       
+      <div style="margin-top:16px; padding:12px; background:#fff3cd; border-radius:4px;">
+        <label style="display:block; margin-bottom:6px; font-weight:bold;">Upload Custom CSV:</label>
+        <input type="file" id="csvFile" accept=".csv" style="display:block; margin-bottom:6px;" />
+        <button onclick="uploadCSV()" style="background:#007bff; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">Upload & Process</button>
+        <small style="display:block; margin-top:6px; color:#856404;">Required columns: EnsemblID, log2FoldChange, padj</small>
+      </div>
+      
       <p>Red and blue points are automatically colored if significant & >2 log2 fold change</p>
       <p>also it takes ages to load so give it a sec :p</p>
 
+      <button id="toggleLabelsBtn" style="margin-bottom:6px;">Threshold labels: Off</button>
+      
       <div style="margin-top:8px;">
-        <label for="lfc">log2 fold-change threshold: <strong><span id="lfc_val">2</span></strong></label>
-        <input id="lfc" type="range" min="0" max="8" step="0.1" value="2" style="width:300px; vertical-align:middle;" />
+        <label for="lfc">log2 fold-change threshold: <strong><input id="lfc_val" type="number" min="0" max="8" step="0.01" value="2" style="width:5.5ch" /></strong></label>
+        <div class="slider-wrap">
+          <input id="lfc" type="range" min="0" max="8" step="0.01" value="2" style="width:300px; vertical-align:middle;" />
+        </div>
       </div>
 
       <div style="margin-top:8px;">
-        <button id="toggleLabelsBtn" style="margin-bottom:6px;">Threshold labels: Off</button>
-        <label for="minlogp">-log10(padj) threshold: <strong><span id="minlogp_val">60</span></strong></label>
-        <input id="minlogp" type="range" min="0" max="75" step="0.1" value="60" style="width:300px; vertical-align:middle;" />
-        <p style="color: red;">WARNING! setting -log10(padj) below 40 will greatly increase loading time</p>
+        <label for="minlogp">-log10(padj) threshold: <strong><input id="minlogp_val" type="number" min="0" max="75" step="0.01" value="60" style="width:5.5ch" /></strong></label> 
+        <div class="slider-wrap">
+          <input id="minlogp" type="range" min="0" max="75" step="0.01" value="60" style="width:300px; vertical-align:middle;" />
+        </div>
       </div>
+      <p style="color: red;">WARNING! setting -log10(padj) below 40 will greatly increase loading time</p>
+
       <pre id="out"></pre>
     </div>
 
